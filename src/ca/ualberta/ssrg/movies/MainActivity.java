@@ -1,5 +1,22 @@
 package ca.ualberta.ssrg.movies;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -16,6 +33,7 @@ import ca.ualberta.ssrg.movies.es.ESMovieManager;
 import ca.ualberta.ssrg.movies.es.Movie;
 import ca.ualberta.ssrg.movies.es.Movies;
 import ca.ualberta.ssrg.movies.es.MoviesController;
+import ca.ualberta.ssrg.movies.es.data.SearchHit;
 
 public class MainActivity extends Activity {
 
@@ -74,9 +92,47 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-		
-		
+		Gson gson = null;
 
+		ArrayList<Movie> a = null;
+		
+		Movies m = movieManager.getMovies();
+		
+		SearchHit<Movie> sr = null;
+		HttpClient httpClient = new DefaultHttpClient();
+		
+		HttpGet getMovies = new HttpGet(m.getResourceUrl());
+
+		HttpResponse response = null;
+
+		try {
+			response = httpClient.execute(getMovies);
+		} catch (ClientProtocolException e1) {
+			throw new RuntimeException(e1);
+		} catch (IOException e1) {
+			throw new RuntimeException(e1);
+		}
+		
+		Type searchHitType = new TypeToken<SearchHit<Movie>>() {}.getType();
+
+		try {
+			sr = gson.fromJson(
+					new InputStreamReader(response.getEntity().getContent()),
+					searchHitType);
+		} catch (JsonIOException e) {
+			throw new RuntimeException(e);
+		} catch (JsonSyntaxException e) {
+			throw new RuntimeException(e);
+		} catch (IllegalStateException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		
+		
+		Movie mov = sr.getSource();
+		a.add(mov);
+		
 		// Refresh the list when visible
 		// TODO: Search all
 		
